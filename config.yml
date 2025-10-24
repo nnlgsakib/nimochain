@@ -4,18 +4,19 @@ build:
     proto:
         path: proto
 accounts:
+    - name: foundation
+      coins:
+        - 60000000000000000000000000unimo
     - name: alice
       coins:
-        - 1000000000000000000unimo
+        - 20000000000000000000000000unimo
     - name: bob
       coins:
-        - 10000token
-        - 100000000unimo
+        - 20000000000000000000000000unimo
 faucet:
     name: bob
     coins:
-        - 5token
-        - 100000stake
+        - 10000000000000000000unimo  # 10 nimo
     host: 0.0.0.0:4500
 client:
     openapi:
@@ -23,9 +24,9 @@ client:
 default_denom: unimo
 validators:
     - name: alice
-      bonded: 1000000000000000000unimo
+      bonded: 10000000000000000000000unimo  # 10,000 nimo
     - name: validator1
-      bonded: 200000000unimo
+      bonded: 10000000000000000000000unimo  # 10,000 nimo
       app:
         api:
             address: 0.0.0.0:1327
@@ -40,7 +41,7 @@ validators:
             laddr: 0.0.0.0:26667
             pprof_laddr: 0.0.0.0:6070
     - name: validator2
-      bonded: 100000000unimo
+      bonded: 10000000000000000000000unimo  # 10,000 nimo
       app:
         api:
             address: 0.0.0.0:1337
