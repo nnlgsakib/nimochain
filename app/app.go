@@ -30,6 +30,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	"github.com/cosmos/cosmos-sdk/x/auth/ante"
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	authsims "github.com/cosmos/cosmos-sdk/x/auth/simulation"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -56,6 +57,7 @@ import (
 	ibckeeper "github.com/cosmos/ibc-go/v10/modules/core/keeper"
 	_ "github.com/ethereum/go-ethereum/eth/tracers/js"
 	_ "github.com/ethereum/go-ethereum/eth/tracers/native"
+	gnovmmodulekeeper "github.com/ignite/gnovm/x/gnovm/keeper"
 
 	"nimo-chain/docs"
 	nimochainmodulekeeper "nimo-chain/x/nimochain/keeper"
@@ -125,6 +127,7 @@ type App struct {
 	EVMMempool         *evmmempool.ExperimentalEVMMempool
 	WasmKeeper         wasmkeeper.Keeper
 	TokenfactoryKeeper tokenfactorymodulekeeper.Keeper
+	GnoVMKeeper        gnovmmodulekeeper.Keeper
 }
 
 func init() {
@@ -202,7 +205,7 @@ func New(
 		&app.CircuitBreakerKeeper,
 		&app.ParamsKeeper,
 		&app.NimochainKeeper, &app.FeeGrantKeeper, &app.FeeGrantKeeper,
-		&app.TokenfactoryKeeper,
+		&app.TokenfactoryKeeper, &app.GnoVMKeeper,
 	); err != nil {
 		panic(err)
 	}
@@ -222,6 +225,14 @@ func New(
 		panic(err)
 	}
 	if err := app.postRegisterEVMModules(); err != nil {
+		panic(err)
+	}
+	if err := app.setAnteHandler(ante.HandlerOptions{
+		AccountKeeper:   app.AuthKeeper,
+		BankKeeper:      app.BankKeeper,
+		SignModeHandler: app.txConfig.SignModeHandler(),
+		SigGasConsumer:  ante.DefaultSigVerificationGasConsumer,
+	}); err != nil {
 		panic(err)
 	}
 

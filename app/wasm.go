@@ -18,6 +18,9 @@ import (
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	"github.com/cosmos/gogoproto/proto"
 	porttypes "github.com/cosmos/ibc-go/v10/modules/core/05-port/types"
+	baseevmante "github.com/cosmos/evm/ante"
+	
+	appante "nimo-chain/app/ante"
 )
 
 // registerWasmModules register CosmWasm keepers and non dependency inject modules.
@@ -73,7 +76,7 @@ func (app *App) registerWasmModules(
 		return nil, err
 	}
 
-	if err := app.setAnteHandler(app.txConfig, wasmConfig, app.GetKey(wasmtypes.StoreKey)); err != nil {
+	if err := app.setWasmAnteHandler(app.txConfig, wasmConfig, app.GetKey(wasmtypes.StoreKey)); err != nil {
 		return nil, err
 	}
 
@@ -118,26 +121,23 @@ func (app *App) setPostHandler() error {
 	return nil
 }
 
-func (app *App) setAnteHandler(txConfig client.TxConfig, wasmConfig wasmtypes.NodeConfig, txCounterStoreKey *storetypes.KVStoreKey) error {
-	anteHandler, err := NewAnteHandler(
-		HandlerOptions{
-			HandlerOptions: ante.HandlerOptions{
-				AccountKeeper:   app.AuthKeeper,
-				BankKeeper:      app.BankKeeper,
-				SignModeHandler: txConfig.SignModeHandler(),
-				FeegrantKeeper:  app.FeeGrantKeeper,
-				SigGasConsumer:  ante.DefaultSigVerificationGasConsumer,
-			},
-			IBCKeeper:             app.IBCKeeper,
-			NodeConfig:            &wasmConfig,
-			WasmKeeper:            &app.WasmKeeper,
-			TXCounterStoreService: runtime.NewKVStoreService(txCounterStoreKey),
-			CircuitKeeper:         &app.CircuitBreakerKeeper,
+func (app *App) setWasmAnteHandler(txConfig client.TxConfig, wasmConfig wasmtypes.NodeConfig, txCounterStoreKey *storetypes.KVStoreKey) error {
+	anteHandler := appante.NewAnteHandler(
+		baseevmante.HandlerOptions{
+			AccountKeeper:          app.AuthKeeper,
+			BankKeeper:             app.BankKeeper,
+			EvmKeeper:              app.EVMKeeper,
+			FeeMarketKeeper:        app.FeeMarketKeeper,
+			IBCKeeper:              app.IBCKeeper,
+			SignModeHandler:        txConfig.SignModeHandler(),
+			FeegrantKeeper:         app.FeeGrantKeeper,
+			SigGasConsumer:         ante.DefaultSigVerificationGasConsumer,
+			TxFeeChecker:           nil, // Use default fee checker
+			MaxTxGasWanted:         0, // 0 means no limit
+			ExtensionOptionChecker: nil,
+			PendingTxListener:      nil,
 		},
 	)
-	if err != nil {
-		return fmt.Errorf("failed to create AnteHandler: %s", err)
-	}
 
 	// Set the AnteHandler for the app
 	app.SetAnteHandler(anteHandler)

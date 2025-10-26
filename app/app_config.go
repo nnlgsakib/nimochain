@@ -75,6 +75,8 @@ import (
 	icatypes "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts/types"
 	ibctransfertypes "github.com/cosmos/ibc-go/v10/modules/apps/transfer/types"
 	ibcexported "github.com/cosmos/ibc-go/v10/modules/core/exported"
+	_ "github.com/ignite/gnovm/x/gnovm/module"
+	gnovmmoduletypes "github.com/ignite/gnovm/x/gnovm/types"
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
@@ -92,7 +94,7 @@ var (
 		{Account: evmtypes.ModuleName, Permissions: []string{authtypes.Minter, authtypes.Burner}}, {Account: erc20types.ModuleName, Permissions: []string{authtypes.Minter, authtypes.Burner}},
 		{Account: feemarkettypes.ModuleName},
 		// blocked account addresses
-		{Account: wasmtypes.ModuleName, Permissions: []string{authtypes.Burner}}, {Account: tokenfactorymoduletypes.ModuleName, Permissions: []string{authtypes.Minter, authtypes.Burner, authtypes.Staking}}}
+		{Account: wasmtypes.ModuleName, Permissions: []string{authtypes.Burner}}, {Account: tokenfactorymoduletypes.ModuleName, Permissions: []string{authtypes.Minter, authtypes.Burner, authtypes.Staking}}, {Account: gnovmmoduletypes.ModuleName, Permissions: []string{authtypes.Minter, authtypes.Burner}}}
 	blockAccAddrs = []string{
 		authtypes.FeeCollectorName,
 		distrtypes.ModuleName,
@@ -139,7 +141,8 @@ var (
 						evmtypes.ModuleName,
 						wasmtypes.ModuleName,
 						tokenfactorymoduletypes.ModuleName,
-						// this line is used by starport scaffolding # stargate/app/beginBlockers
+						gnovmmoduletypes.ModuleName,
+// this line is used by starport scaffolding # stargate/app/beginBlockers
 					},
 					EndBlockers: []string{
 						govtypes.ModuleName,
@@ -154,7 +157,8 @@ var (
 						evmtypes.ModuleName,
 						wasmtypes.ModuleName,
 						tokenfactorymoduletypes.ModuleName,
-						// this line is used by starport scaffolding # stargate/app/endBlockers
+						gnovmmoduletypes.ModuleName,
+// this line is used by starport scaffolding # stargate/app/endBlockers
 					},
 					// The following is mostly only needed when ModuleName != StoreKey name.
 					OverrideStoreKeys: []*runtimev1alpha1.StoreKeyConfig{
@@ -199,7 +203,8 @@ var (
 						genutiltypes.ModuleName,
 						wasmtypes.ModuleName,
 						tokenfactorymoduletypes.ModuleName,
-						// this line is used by starport scaffolding # stargate/app/initGenesis
+						gnovmmoduletypes.ModuleName,
+// this line is used by starport scaffolding # stargate/app/initGenesis
 					},
 				}),
 			},
@@ -303,7 +308,11 @@ var (
 				Name:   tokenfactorymoduletypes.ModuleName,
 				Config: appconfig.WrapAny(&tokenfactorymoduletypes.Module{}),
 			},
-			// this line is used by starport scaffolding # stargate/app/moduleConfig
+			{
+			Name:   gnovmmoduletypes.ModuleName,
+			Config: appconfig.WrapAny(&gnovmmoduletypes.Module{}),
+		},
+		// this line is used by starport scaffolding # stargate/app/moduleConfig
 		},
 	})
 )

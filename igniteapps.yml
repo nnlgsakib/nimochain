@@ -2,3 +2,4 @@ apps:
     - path: github.com/ignite/apps/evm@evm/v0.1.2
     - path: github.com/ignite/apps/wasm
     - path: github.com/ignite/apps/explorer
+    - path: github.com/ignite/apps/gnovm
