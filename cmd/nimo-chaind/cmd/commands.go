@@ -61,6 +61,10 @@ func initRootCmd(
 		txCommand(),
 		cosmosevmcmd.KeyCommands(app.DefaultNodeHome, false),
 	)
+	
+	// Add tendermint subcommands
+	server.AddCommands(rootCmd, app.DefaultNodeHome, newApp, appExport, addModuleInitFlags)
+	
 	wasmcli.ExtendUnsafeResetAllCmd(rootCmd)
 
 }

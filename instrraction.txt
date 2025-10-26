@@ -1,0 +1,405 @@
+Removing Delete Functionality
+In a blockchain context, once a denom is created, it's crucial to ensure it remains immutable and cannot be deleted. This immutability is key to maintaining the integrity and trust in the blockchain. Therefore, we'll remove the delete functionality from the scaffolded CRUD operations. Follow these steps:
+
+Proto Adjustments
+In proto/tokenfactory/tokenfactory/v1/tx.proto, remove the DeleteDenom RPC method and the associated message types.
+
+Client Updates
+Navigate to the client in x/tokenfactory/module/autocli.go and make these changes:
+
+Remove the entire DeleteDenom RpcMethod
+Keeper Modifications
+In x/tokenfactory/keeper/msg_server_denom_test.go, remove TestDenomMsgServerDelete().
+From msg_server_denom.go remove the DeleteDenom() function.
+Types Directory Changes
+Update x/tokenfactory/types/codec.go to remove references to MsgDeleteDenom.
+Eliminate the function NewMsgDeleteDenom() in x/tokenfactory/types/messages_denom.go.
+After making these changes, commit your updates:
+
+git add .
+git commit -m "Remove the delete denom functionality"
+This concludes the second chapter, setting a solid foundation for your token factory module. In the next chapter, we'll delve into implementing the application logic that will bring your token factory to life.
+
+Chapter 3: Implementing Core Functionality in Your Token Factory
+Having disabled the deletion of denoms, we now turn our attention to the heart of the token factory module: defining the structure of new denoms and implementing their creation and update logic.
+
+Proto Definition Updates
+Start by defining the structure of a new token denom in proto/tokenfactory/tokenfactory/v1/tx.proto.
+
+For MsgCreateDenom:
+
+Remove int32 supply = 8; and adjust the field order so canChangeMaxSupply becomes the 8th field.
+Resulting MsgCreateDenom message:
+
+message MsgCreateDenom {
+  option (cosmos.msg.v1.signer) = "owner";
+  string owner              = 1;
+  string denom              = 2;
+  string description        = 3;
+  string ticker             = 4;
+  int64  precision          = 5;
+  string url                = 6;
+  int64  maxSupply          = 7;
+  bool   canChangeMaxSupply = 8;
+}
+For MsgUpdateDenom:
+
+Omit string ticker = 4;, int32 precision = 5;, and int32 supply = 8;, and reorder the remaining fields.
+Resulting MsgUpdateDenom message:
+
+message MsgUpdateDenom {
+  option (cosmos.msg.v1.signer) = "owner";
+  string owner              = 1;
+  string denom              = 2;
+  string description        = 3;
+  string url                = 4;
+  int64 maxSupply           = 5;
+  bool canChangeMaxSupply   = 6;
+}
+Types Updates
+When creating new denoms, they initially have no supply. The supply is determined only when tokens are minted.
+
+In x/tokenfactory/types/messages_denom.go:
+
+Remove the supply parameter from NewMsgCreateDenom.
+Update NewMsgUpdateDenom to exclude unchangeable parameters like ticker, precision, and supply.
+The same changes need to be applied to x/tokenfactory/module/aucli.go.
+
+Remove the supply from CreateDenom and the ticker, precision, and supply from UpdateDemon commands:
+
+Tx: &autocliv1.ServiceCommandDescriptor{
+            Service:              modulev1.Msg_ServiceDesc.ServiceName,
+            EnhanceCustomCommand: true, // only required if you want to use the custom command
+            RpcCommandOptions: []*autocliv1.RpcCommandOptions{
+                {
+                    RpcMethod: "UpdateParams",
+                    Skip:      true, // skipped because authority gated
+                },
+                {
+                    RpcMethod:      "CreateDenom",
+                    Use:            "create-denom [denom] [description] [ticker] [precision] [url] [maxSupply] [canChangeMaxSupply]",
+                    Short:          "Create a new Denom",
+                    PositionalArgs: []*autocliv1.PositionalArgDescriptor{{ProtoField: "denom"}, {ProtoField: "description"}, {ProtoField: "ticker"}, {ProtoField: "precision"}, {ProtoField: "url"}, {ProtoField: "maxSupply"}, {ProtoField: "canChangeMaxSupply", Optional: true}},
+                },
+                {
+                    RpcMethod:      "UpdateDenom",
+                    Use:            "update-denom [denom] [description] [url] [maxSupply] [canChangeMaxSupply]",
+                    Short:          "Update Denom",
+                    PositionalArgs: []*autocliv1.PositionalArgDescriptor{{ProtoField: "denom"}, {ProtoField: "description"}, {ProtoField: "url"}, {ProtoField: "maxSupply"}, {ProtoField: "canChangeMaxSupply"}},
+                },
+                // this line is used by ignite scaffolding # autocli/tx
+            },
+Keeper Logic
+The keeper is where you define the business logic for manipulating the database and writing to the key-value store.
+
+In x/tokenfactory/keeper/msg_server_denom.go:
+
+Update CreateDenom() to include logic for creating unique denoms. Set Supply to 0.
+Modify UpdateDenom() to verify ownership and manage max supply changes.
+func (k msgServer) UpdateDenom(ctx context.Context, msg *types.MsgUpdateDenom) (*types.MsgUpdateDenomResponse, error) {
+	if _, err := k.addressCodec.StringToBytes(msg.Owner); err != nil {
+		return nil, errorsmod.Wrap(sdkerrors.ErrInvalidAddress, fmt.Sprintf("invalid signer address: %s", err))
+	}
+	// Check if the value exists
+	val, err := k.Denom.Get(ctx, msg.Denom)
+	if err != nil {
+		if errors.Is(err, collections.ErrNotFound) {
+			return nil, errorsmod.Wrap(sdkerrors.ErrKeyNotFound, "Denom not found")
+		}
+
+		return nil, errorsmod.Wrap(sdkerrors.ErrLogic, err.Error())
+	}
+
+    // Checks if the the msg owner is the same as the current owner
+	if msg.Owner != val.Owner {
+		return nil, errorsmod.Wrap(sdkerrors.ErrUnauthorized, "incorrect owner")
+	}
+
+    if !val.CanChangeMaxSupply && val.MaxSupply != msg.MaxSupply {
+        return nil, errorsmod.Wrap(sdkerrors.ErrUnauthorized, "cannot change maxsupply")
+    }
+    if !val.CanChangeMaxSupply && msg.CanChangeMaxSupply {
+        return nil, errorsmod.Wrap(sdkerrors.ErrUnauthorized, "Cannot revert change maxsupply flag")
+    }
+    var denom = types.Denom{
+        Owner:              msg.Owner,
+        Denom:              msg.Denom,
+        Description:        msg.Description,
+        Url:                msg.Url,
+        MaxSupply:          msg.MaxSupply,
+        CanChangeMaxSupply: msg.CanChangeMaxSupply,
+    }
+
+    if err := k.Denom.Set(ctx, denom.Denom, denom); err != nil {
+		return nil, errorsmod.Wrap(sdkerrors.ErrLogic, "failed to update denom")
+	}
+
+    return &types.MsgUpdateDenomResponse{}, nil
+}
+Expected Keepers
+x/tokenfactory/types/expected_keepers.go is where you define interactions with other modules. Since your module relies on the auth and bank modules, specify which of their functions your module can access.
+
+Replace the existing code in expected_keepers.go with the updated definitions that interface with auth and bank modules.
+
+package types
+
+import (
+    "context"
+    sdk "github.com/cosmos/cosmos-sdk/types"
+)
+
+// AuthKeeper defines the expected interface for the Auth module.
+type AuthKeeper interface {
+	AddressCodec() address.Codec
+	GetAccount(context.Context, sdk.AccAddress) sdk.AccountI // only used for simulation
+	// Methods imported from account should be defined here
+	GetModuleAddress(moduleName string) sdk.AccAddress
+    GetModuleAccount(ctx context.Context, moduleName string) sdk.ModuleAccountI
+}
+
+// BankKeeper defines the expected interface for the Bank module.
+type BankKeeper interface {
+	SpendableCoins(context.Context, sdk.AccAddress) sdk.Coins
+	// Methods imported from bank should be defined here
+	SendCoins(ctx context.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) error
+    MintCoins(ctx context.Context, moduleName string, amt sdk.Coins) error
+}
+
+// ParamSubspace defines the expected Subspace interface for parameters.
+type ParamSubspace interface {
+    Get(context.Context, []byte, interface{})
+    Set(context.Context, []byte, interface{})
+}
+Commiting Your Changes
+Regular commits are vital for tracking progress and ensuring a stable rollback point if needed. After implementing these changes, use the following commands to commit:
+
+git add .
+git commit -m "Add token factory create and update logic"
+To review your progress, use git log to see the list of commits, illustrating the journey from initialization to the current state of your module.
+
+Chapter 4: Expanding Functionality with New Messages
+In this chapter, we focus on enhancing the token factory module by adding two critical messages: MintAndSendTokens and UpdateOwner. These functionalities are key to managing tokens within your blockchain.
+
+Scaffolding New Messages
+MintAndSendTokens:
+
+This message allows the creation (minting) of new tokens and their allocation to a specified recipient. The necessary inputs are the denom, the amount to mint, and the recipient's address.
+
+Scaffold this message with:
+
+ignite scaffold message MintAndSendTokens denom:string amount:int recipient:string --module tokenfactory --signer owner
+UpdateOwner:
+
+This message facilitates the transfer of ownership of a denom. It requires the denom name and the new owner's address.
+
+Scaffold this message with:
+
+ignite scaffold message UpdateOwner denom:string newOwner:string --module tokenfactory --signer owner
+Implementing Logic for New Messages
+In the MintAndSendTokens Functionality:
+
+Located in x/tokenfactory/keeper/msg_server_mint_and_send_tokens.go, this function encompasses the logic for minting new tokens. Key steps include:
+
+Verifying the existence and ownership of the denom.
+Ensuring minting does not exceed the maximum supply.
+Minting the specified amount and sending it to the recipient.
+In the UpdateOwner Functionality:
+
+Found in x/tokenfactory/keeper/msg_server_update_owner.go, this function allows transferring ownership of a denom. It involves:
+
+Checking if the denom exists.
+Ensuring that the request comes from the current owner.
+Updating the owner field in the denom's record.
+Mint & Update Keeper Logic
+For MintAndSendTokens, add logic to mint new tokens as per the request parameters. This includes checking for maximum supply limits and transferring the minted tokens to the specified recipient.
+Navigate to x/tokenfactory/keeper/msg_server_mint_and_send_tokens.go.
+
+package keeper
+
+import (
+	"context"
+	"errors"
+
+	"tokenfactory/x/tokenfactory/types"
+
+	"cosmossdk.io/collections"
+	errorsmod "cosmossdk.io/errors"
+	"cosmossdk.io/math"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+)
+
+func (k msgServer) MintAndSendTokens(ctx context.Context, msg *types.MsgMintAndSendTokens) (*types.MsgMintAndSendTokensResponse, error) {
+	if _, err := k.addressCodec.StringToBytes(msg.Owner); err != nil {
+		return nil, errorsmod.Wrap(err, "invalid authority address")
+	}
+
+	val, err := k.Denom.Get(ctx, msg.Denom)
+	if err != nil {
+		if errors.Is(err, collections.ErrNotFound) {
+			return nil, errorsmod.Wrap(sdkerrors.ErrKeyNotFound, "Denom not found")
+		}
+
+		return nil, errorsmod.Wrap(sdkerrors.ErrLogic, err.Error())
+	}
+
+	if msg.Owner != val.Owner {
+		return nil, errorsmod.Wrap(sdkerrors.ErrUnauthorized, "incorrect owner")
+	}
+
+	if val.Supply+msg.Amount > val.MaxSupply {
+		return nil, errorsmod.Wrap(sdkerrors.ErrInvalidRequest, "Cannot mint more than Max Supply")
+	}
+	moduleAcct := k.authKeeper.GetModuleAddress(types.ModuleName)
+
+	recipientAddress, err := sdk.AccAddressFromBech32(msg.Recipient)
+	if err != nil {
+		return nil, err
+	}
+
+	var mintCoins sdk.Coins
+
+	mintCoins = mintCoins.Add(sdk.NewCoin(msg.Denom, math.NewInt(int64(msg.Amount))))
+	if err := k.bankKeeper.MintCoins(ctx, types.ModuleName, mintCoins); err != nil {
+		return nil, err
+	}
+	if err := k.bankKeeper.SendCoins(ctx, moduleAcct, recipientAddress, mintCoins); err != nil {
+		return nil, err
+	}
+
+	var denom = types.Denom{
+		Owner:              val.Owner,
+		Denom:              val.Denom,
+		Description:        val.Description,
+		MaxSupply:          val.MaxSupply,
+		Supply:             val.Supply + msg.Amount,
+		Precision:          val.Precision,
+		Ticker:             val.Ticker,
+		Url:                val.Url,
+		CanChangeMaxSupply: val.CanChangeMaxSupply,
+	}
+
+	if err := k.Denom.Set(ctx, denom.Denom, denom); err != nil {
+		return nil, errorsmod.Wrap(sdkerrors.ErrLogic, "failed to mint and send denom")
+	}
+	return &types.MsgMintAndSendTokensResponse{}, nil
+}
+
+For UpdateOwner, implement the logic to update the owner of a denom, ensuring that only the current owner can initiate this change.
+Navigate to x/tokenfactory/keeper/msg_server_update_owner.go.
+
+package keeper
+
+import (
+	"context"
+	"errors"
+
+	"tokenfactory/x/tokenfactory/types"
+
+	"cosmossdk.io/collections"
+	errorsmod "cosmossdk.io/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+)
+
+func (k msgServer) UpdateOwner(ctx context.Context, msg *types.MsgUpdateOwner) (*types.MsgUpdateOwnerResponse, error) {
+	if _, err := k.addressCodec.StringToBytes(msg.Owner); err != nil {
+		return nil, errorsmod.Wrap(err, "invalid authority address")
+	}
+
+	val, err := k.Denom.Get(ctx, msg.Denom)
+	if err != nil {
+		if errors.Is(err, collections.ErrNotFound) {
+			return nil, errorsmod.Wrap(sdkerrors.ErrKeyNotFound, "Denom not found")
+		}
+
+		return nil, errorsmod.Wrap(sdkerrors.ErrLogic, err.Error())
+	}
+
+	// Checks if the the msg owner is the same as the current owner
+	if msg.Owner != val.Owner {
+		return nil, errorsmod.Wrap(sdkerrors.ErrUnauthorized, "incorrect owner")
+	}
+
+	var denom = types.Denom{
+		Owner:              msg.NewOwner,
+		Denom:              msg.Denom,
+		Description:        val.Description,
+		MaxSupply:          val.MaxSupply,
+		Supply:             val.Supply,
+		Precision:          val.Precision,
+		Ticker:             val.Ticker,
+		Url:                val.Url,
+		CanChangeMaxSupply: val.CanChangeMaxSupply,
+	}
+
+	if err := k.Denom.Set(ctx, denom.Denom, denom); err != nil {
+		return nil, errorsmod.Wrap(sdkerrors.ErrLogic, "failed to update denom owner")
+	}
+
+	return &types.MsgUpdateOwnerResponse{}, nil
+}
+
+Committing Your Changes
+After implementing these new functionalities, it's crucial to save your progress. Use the following commands:
+
+git add .
+git commit -m "Add minting and sending functionality"
+This commit not only tracks your latest changes but also acts as a checkpoint to which you can revert if needed.
+
+Chapter 5: Walkthrough and Manual Testing of the Token Factory Module
+Congratulations on reaching the final stage! It's time to put your token factory module to the test. This walkthrough will guide you through building, starting your chain, and testing the functionalities you've implemented.
+
+Building and Starting the Chain
+First, build and initiate your blockchain:
+
+ignite chain serve
+Keep this terminal running as you proceed with the tests.
+
+Testing Functionalities
+Creating a New Denom:
+In a new terminal, create a denom named uignite with the command:
+
+tokenfactoryd tx tokenfactory create-denom uignite "My denom" IGNITE 6 "some/url" 1000000000 true --from alice
+Confirm the transaction in your blockchain.
+
+Querying the Denom:
+Check the list of denoms to see your new creation:
+
+tokenfactoryd query tokenfactory list-denom
+Updating the Denom:
+Modify the uignite denom:
+
+tokenfactoryd tx tokenfactory update-denom uignite "Ignite" "newurl" 2000000000 false --from alice
+Query the denoms again to observe the changes:
+
+tokenfactoryd query tokenfactory list-denom
+Minting and Sending Tokens:
+Mint uignite tokens and send them to a recipient:
+
+tokenfactoryd tx tokenfactory mint-and-send-tokens uignite 1200 cosmos16x46rxvtkmgph6jnkqs80tzlzk6wpy6ftrgh6t --from alice
+Check the recipient’s balance:
+
+tokenfactoryd query bank balances cosmos16x46rxvtkmgph6jnkqs80tzlzk6wpy6ftrgh6t
+Verify the updated supply in denom list:
+
+tokenfactoryd query tokenfactory list-denom
+Transferring Ownership:
+Transfer the ownership of uignite:
+
+tokenfactoryd tx tokenfactory update-owner uignite cosmos16x46rxvtkmgph6jnkqs80tzlzk6wpy6ftrgh6t --from alice
+Confirm the ownership change:
+
+tokenfactoryd query tokenfactory list-denom
+Confirming Minting Restrictions:
+Test minting with alice to ensure restrictions apply:
+
+tokenfactoryd tx tokenfactory mint-and-send-tokens uignite 1200 cosmos16x46rxvtkmgph6jnkqs80tzlzk6wpy6ftrgh6t --from alice
+Check your transaction:
+
+tokenfactoryd query tx <txhash>
+Congratulations
+You've successfully built and tested a token factory module. This advanced tutorial has equipped you with the skills to:
+
+Integrate other modules and utilize their functionalities.
+Customize CRUD operations to fit your blockchain's needs.
+Scaffold modules and messages effectively.

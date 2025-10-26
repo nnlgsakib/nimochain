@@ -16,6 +16,12 @@ deps:
   - name: buf.build/cosmos/ics23
     commit: dc427cb4519143d8996361c045a29ad7
     digest: b5:8693e72e230bfaf58a88a47a4093ba99f6252c1957a45582567959b38a8563e2abd11443372283d75f4f2306a7e3cc9bf63604d284a016c11966fca4b74b7a28
+  - name: buf.build/cosmwasm/wasmd
+    commit: eba0d83e199b42cfab463d808663201d
+    digest: b5:6b018f71041c1db3df0f5d59e2a82fab6eeddf92dc6454e040ea3a138241f25ea3074f71bdb5dce576d3b80d1a426e45ac7a8e9959d40d189582c7d1a0826aeb
+  - name: buf.build/evmos/evmos
+    commit: fda6f6b3cb5847328db7bfc0ab1150ec
+    digest: b5:d93cc1104481e7e92f5e12583e9aa188bfd44874de7f9ba3b9457d552ffef4e837d43e3092253d5558e0dabcd182e679c9ceacf4224bbcada80353151d9e6226
   - name: buf.build/googleapis/googleapis
     commit: 72c8614f3bd0466ea67931ef2c43d608
     digest: b5:13efeea24e633fd45327390bdee941207a8727e96cf01affb84c1e4100fd8f48a42bbd508df11930cd2884629bafad685df1ac3111bc78cdaefcd38c9371c6b1

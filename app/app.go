@@ -59,6 +59,7 @@ import (
 
 	"nimo-chain/docs"
 	nimochainmodulekeeper "nimo-chain/x/nimochain/keeper"
+	tokenfactorymodulekeeper "nimo-chain/x/tokenfactory/keeper"
 )
 
 const BaseDenomUnit int64 = 18
@@ -123,6 +124,7 @@ type App struct {
 	Erc20Keeper        erc20keeper.Keeper
 	EVMMempool         *evmmempool.ExperimentalEVMMempool
 	WasmKeeper         wasmkeeper.Keeper
+	TokenfactoryKeeper tokenfactorymodulekeeper.Keeper
 }
 
 func init() {
@@ -200,6 +202,7 @@ func New(
 		&app.CircuitBreakerKeeper,
 		&app.ParamsKeeper,
 		&app.NimochainKeeper, &app.FeeGrantKeeper, &app.FeeGrantKeeper,
+		&app.TokenfactoryKeeper,
 	); err != nil {
 		panic(err)
 	}

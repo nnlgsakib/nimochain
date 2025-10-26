@@ -3,6 +3,8 @@ package app
 import (
 	_ "nimo-chain/x/nimochain/module"
 	nimochainmoduletypes "nimo-chain/x/nimochain/types"
+	_ "nimo-chain/x/tokenfactory/module"
+	tokenfactorymoduletypes "nimo-chain/x/tokenfactory/types"
 	"time"
 
 	runtimev1alpha1 "cosmossdk.io/api/cosmos/app/runtime/v1alpha1"
@@ -90,7 +92,7 @@ var (
 		{Account: evmtypes.ModuleName, Permissions: []string{authtypes.Minter, authtypes.Burner}}, {Account: erc20types.ModuleName, Permissions: []string{authtypes.Minter, authtypes.Burner}},
 		{Account: feemarkettypes.ModuleName},
 		// blocked account addresses
-		{Account: wasmtypes.ModuleName, Permissions: []string{authtypes.Burner}}}
+		{Account: wasmtypes.ModuleName, Permissions: []string{authtypes.Burner}}, {Account: tokenfactorymoduletypes.ModuleName, Permissions: []string{authtypes.Minter, authtypes.Burner, authtypes.Staking}}}
 	blockAccAddrs = []string{
 		authtypes.FeeCollectorName,
 		distrtypes.ModuleName,
@@ -136,6 +138,7 @@ var (
 						feemarkettypes.ModuleName,
 						evmtypes.ModuleName,
 						wasmtypes.ModuleName,
+						tokenfactorymoduletypes.ModuleName,
 						// this line is used by starport scaffolding # stargate/app/beginBlockers
 					},
 					EndBlockers: []string{
@@ -150,6 +153,7 @@ var (
 						feemarkettypes.ModuleName,
 						evmtypes.ModuleName,
 						wasmtypes.ModuleName,
+						tokenfactorymoduletypes.ModuleName,
 						// this line is used by starport scaffolding # stargate/app/endBlockers
 					},
 					// The following is mostly only needed when ModuleName != StoreKey name.
@@ -194,6 +198,7 @@ var (
 						// moved down because of evm modules
 						genutiltypes.ModuleName,
 						wasmtypes.ModuleName,
+						tokenfactorymoduletypes.ModuleName,
 						// this line is used by starport scaffolding # stargate/app/initGenesis
 					},
 				}),
@@ -293,6 +298,10 @@ var (
 			{
 				Name:   nimochainmoduletypes.ModuleName,
 				Config: appconfig.WrapAny(&nimochainmoduletypes.Module{}),
+			},
+			{
+				Name:   tokenfactorymoduletypes.ModuleName,
+				Config: appconfig.WrapAny(&tokenfactorymoduletypes.Module{}),
 			},
 			// this line is used by starport scaffolding # stargate/app/moduleConfig
 		},
