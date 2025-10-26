@@ -1,0 +1,27 @@
+=============== Oct 25, 2025 (+06) ===============
+01:41:07.203194 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+01:41:07.222455 db@open opening
+01:41:07.223913 version@stat F·[] S·0B[] Sc·[]
+01:41:07.227377 db@janitor F·2 G·0
+01:41:07.227521 db@open done T·4.952887ms
+01:42:20.645800 db@close closing
+01:42:20.646914 db@close done T·1.110543ms
+=============== Oct 25, 2025 (+06) ===============
+01:42:21.270364 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+01:42:21.273640 version@stat F·[] S·0B[] Sc·[]
+01:42:21.273912 db@open opening
+01:42:21.274532 journal@recovery F·1
+01:42:21.275073 journal@recovery recovering @1
+01:42:21.300650 memdb@flush created L0@2 N·7686 S·262KiB "s/1,v390":"s/latest,v391"
+01:42:21.301701 version@stat F·[1] S·262KiB[262KiB] Sc·[0.25]
+01:42:21.313167 db@janitor F·3 G·0
+01:42:21.313286 db@open done T·39.276871ms
+=============== Oct 25, 2025 (+06) ===============
+01:47:32.919355 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+01:47:32.923160 version@stat F·[1] S·262KiB[262KiB] Sc·[0.25]
+01:47:32.923526 db@open opening
+01:47:32.924362 journal@recovery F·1
+01:47:32.924686 journal@recovery recovering @3
+01:47:32.927866 version@stat F·[1] S·262KiB[262KiB] Sc·[0.25]
+01:47:32.953501 db@janitor F·3 G·0
+01:47:32.953633 db@open done T·29.998182ms

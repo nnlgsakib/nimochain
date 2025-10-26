@@ -1,0 +1,17 @@
+=============== Oct 25, 2025 (+06) ===============
+01:41:07.413118 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+01:41:07.421021 db@open opening
+01:41:07.422474 version@stat F·[] S·0B[] Sc·[]
+01:41:07.424709 db@janitor F·2 G·0
+01:41:07.424821 db@open done T·3.707709ms
+01:42:20.643856 db@close closing
+01:42:20.644747 db@close done T·888.384µs
+=============== Oct 25, 2025 (+06) ===============
+01:47:33.186579 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+01:47:33.189896 version@stat F·[] S·0B[] Sc·[]
+01:47:33.190192 db@open opening
+01:47:33.191021 journal@recovery F·1
+01:47:33.191315 journal@recovery recovering @1
+01:47:33.193221 version@stat F·[] S·0B[] Sc·[]
+01:47:33.208327 db@janitor F·2 G·0
+01:47:33.208558 db@open done T·18.26021ms
