@@ -7,4 +7,5 @@ release/
 *.dot
 *.log
 *.ign
-node-test/
+node-test/*
+cache/*
